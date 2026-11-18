@@ -133,7 +133,7 @@ button{font-family:inherit;color:inherit;border:0;cursor:pointer}
         <h1>ОХОТНИКИ</h1><h2>НА ДЕМОНОВ</h2>
         <p>ночь — время клинка</p>
       </div>
-      <button class="btn" id="startBtn">Начать путь</button>
+      <button class="btn" id="startBtn">Пройти Последний отбор</button>
     </div>
   </section>
 
@@ -141,7 +141,7 @@ button{font-family:inherit;color:inherit;border:0;cursor:pointer}
   <section class="screen" id="create">
     <div class="content">
       <div class="card"><p class="h">🌬 Искусство Дыхания</p>
-        <p class="muted">Ты прошёл испытание на горе, усыпанной глицинией. Выбери стиль — от него зависят техники и сильные стороны.</p></div>
+        <p class="muted">Ты выжил семь ночей Последнего отбора на горе Фудзикасанэ, где круглый год цветёт глициния. Каким Дыханием ты владеешь?</p></div>
       <div class="styles" id="styleList"></div>
       <div class="card" id="styleInfo" style="margin-top:12px"></div>
       <button class="btn" id="pickBtn" disabled>Взять клинок</button>
@@ -155,6 +155,7 @@ button{font-family:inherit;color:inherit;border:0;cursor:pointer}
     <nav class="nav">
       <button data-tab="map" class="on"><span>🗺</span>Карта</button>
       <button data-tab="hero"><span>👤</span>Герой</button>
+      <button data-tab="rank"><span>🎖</span>Ранг</button>
       <button data-tab="train"><span>🏔</span>Тренировка</button>
       <button data-tab="shop"><span>🏪</span>Лавка</button>
     </nav>
@@ -190,56 +191,63 @@ button{font-family:inherit;color:inherit;border:0;cursor:pointer}
 <script>
 /* ================== ДАННЫЕ ================== */
 const STYLES = {
-  water:{name:"Дыхание Воды",e:"🌊",c:"#46a0ff",desc:"Гибкий стиль. Формы лечат и сбивают демона с ритма.",
+  water:{name:"Дыхание Воды",e:"🌊",c:"#46a0ff",h:"Столп Воды",desc:"Гибкий стиль, подходящий любому мечнику. Плавные формы уходят от ударов и сбивают демона с ритма.",
     bonus:{hp:10,atk:3,def:1,crit:6,dodge:6},
-    forms:[["Режущий поток",1,6,1.8,null],["Тихая гладь",5,8,1.4,"heal"],["Водоворот бездны",10,14,3.2,"stun"]]},
-  flame:{name:"Дыхание Пламени",e:"🔥",c:"#ff6e28",desc:"Яростный натиск. Огромный урон и поджог.",
+    forms:[["Первая форма: Рассечение водной глади",1,6,1.8,null],["Третья форма: Течение танца",5,8,1.4,"evade"],["Десятая форма: Изменчивый поток",10,14,3.2,"stun"]]},
+  flame:{name:"Дыхание Пламени",e:"🔥",c:"#ff6e28",h:"Столп Пламени",desc:"Сердце, горящее ярче огня. Прямой натиск, огромный урон и поджог.",
     bonus:{hp:0,atk:4,def:0,crit:5,dodge:0},
-    forms:[["Восход пламени",1,6,2.0,null],["Огненный вихрь",5,9,1.6,"burn"],["Чистилище",10,15,3.6,"burn"]]},
-  thunder:{name:"Дыхание Грома",e:"⚡",c:"#ffdc3c",desc:"Скорость молнии. Высокий шанс крита.",
+    forms:[["Первая форма: Неведомый огонь",1,6,2.0,null],["Пятая форма: Пламенный тигр",5,9,1.6,"burn"],["Девятая форма: Рэнгоку",10,15,3.6,"burn"]]},
+  thunder:{name:"Дыхание Грома",e:"⚡",c:"#ffdc3c",h:"Столп Грома",desc:"Сила в ногах и одном ударе. Молниеносный выпад и высокий шанс крита.",
     bonus:{hp:0,atk:2,def:0,crit:18,dodge:5},
-    forms:[["Раскат грома",1,6,2.1,"crit"],["Рой молний",5,9,0.8,"multi"],["Бог грозы",10,15,3.4,"crit"]]},
-  wind:{name:"Дыхание Ветра",e:"🌪",c:"#78e6aa",desc:"Режущие порывы. Много ударов подряд.",
+    forms:[["Первая форма: Удар грома и вспышка",1,6,2.1,"crit"],["Первая форма: Шестикратная вспышка",5,9,0.8,"multi"],["Седьмая форма: Огненный бог грома",10,15,3.4,"crit"]]},
+  wind:{name:"Дыхание Ветра",e:"🌪",c:"#78e6aa",h:"Столп Ветра",desc:"Яростный, режущий стиль. Серии ударов, рвущие демона на части.",
     bonus:{hp:5,atk:3,def:0,crit:8,dodge:4},
-    forms:[["Пыльный смерч",1,6,1.9,null],["Клинки бури",5,9,0.75,"multi"],["Око тайфуна",10,15,3.3,"stun"]]},
-  stone:{name:"Дыхание Камня",e:"⛰",c:"#c8a878",desc:"Несокрушимость скалы. Много здоровья и защиты.",
+    forms:[["Первая форма: Режущий пыльный вихрь",1,6,1.9,null],["Третья форма: Древо очищающей бури",5,9,0.75,"multi"],["Девятая форма: Тайфун Идатэн",10,15,3.3,"stun"]]},
+  stone:{name:"Дыхание Камня",e:"⛰",c:"#c8a878",h:"Столп Камня",desc:"Самый мощный и стойкий стиль. Много здоровья, защиты и сокрушительные удары.",
     bonus:{hp:35,atk:3,def:4,crit:4,dodge:0},
-    forms:[["Обвал",1,6,1.8,null],["Гранитный щит",5,8,1.2,"shield"],["Гнев горы",10,15,3.5,"stun"]]},
-  mist:{name:"Дыхание Тумана",e:"🌫",c:"#c8d2f0",desc:"Призрачные шаги. Демонам трудно попасть.",
+    forms:[["Первая форма: Змеевик — двуполярность",1,6,1.8,null],["Третья форма: Каменная кожа",5,8,1.2,"shield"],["Пятая форма: Арки праведности",10,15,3.5,"stun"]]},
+  mist:{name:"Дыхание Тумана",e:"🌫",c:"#c8d2f0",h:"Столп Тумана",desc:"Ветвь Дыхания Ветра. Обманчивые движения — демону трудно попасть.",
     bonus:{hp:0,atk:2,def:0,crit:8,dodge:18},
-    forms:[["Призрачный шаг",1,6,1.9,null],["Пелена",5,8,1.3,"evade"],["Лунная дымка",10,15,3.4,"evade"]]},
+    forms:[["Первая форма: Низкие облака, далёкая дымка",1,6,1.9,null],["Третья форма: Рассеянный туман",5,8,1.3,"evade"],["Седьмая форма: Затмевающие облака",10,15,3.4,"evade"]]},
 };
-const RANKS=[[1,"Новобранец"],[4,"Младший мечник"],[8,"Мечник"],[12,"Старший мечник"],[16,"Охотник Ордена"],[20,"Мастер клинка"],[25,"Страж Ордена"]];
+const RANKS=[["Мидзуното","癸",1,0],["Мидзуноэ","壬",3,5],["Каното","辛",5,12],["Каноэ","庚",7,22],["Цутиното","己",9,35],["Цутиноэ","戊",11,50],["Хиното","丁",14,70],["Хиноэ","丙",17,95],["Киното","乙",20,125],["Киноэ","甲",23,160]];
+const HASHIRA_LVL=25;
 const D = (id,name,lvl,hp,atk,def,regen,xp,gold,c,horns,lore)=>({id,name,lvl,hp,atk,def,regen,xp,gold,c,horns,lore});
 const DEMONS = {
   hungry:D("hungry","Голодный демон",1,45,7,1,3,18,15,"#c82828",1,"Недавно обращённый. Почти не помнит, кем был."),
-  swamp:D("swamp","Болотный пожиратель",2,70,9,2,4,28,22,"#5aaa3c",0,"Утаскивает путников в трясину."),
-  lantern:D("lantern","Демон бумажных фонарей",4,95,12,3,4,40,35,"#ff9628",2,"Заманивает детей огоньками."),
-  weaver:D("weaver","Паучиха-ткачиха",6,130,15,4,5,58,48,"#e6e6ff",0,"Её нити прочнее стали."),
-  puppet:D("puppet","Демон-кукловод",8,170,19,6,5,80,65,"#b450dc",2,"Управляет телами жертв, как марионетками."),
-  bone:D("bone","Костяной самурай",11,230,24,9,6,110,90,"#ebe1c8",2,"Носит доспех из костей павших мечников."),
-  fox:D("fox","Огненная лиса",14,290,30,11,6,150,120,"#ff5a1e",3,"Девять хвостов — девять сожжённых деревень."),
-  faceless:D("faceless","Безликий из тумана",18,370,37,14,7,200,160,"#96aabe",0,"Ты услышишь только шёпот."),
-  mirror:D("mirror","Демон тысячи зеркал",22,460,45,18,8,270,220,"#78e6ff",4,"Каждое отражение — ещё одна пасть."),
+  hands:D("hands","Рукастый демон",2,70,9,2,4,28,22,"#5aaa3c",0,"Десятки лет пожирает участников Последнего отбора."),
+  swamp:D("swamp","Болотный демон",3,90,11,3,4,36,30,"#3c8c78",1,"Ныряет в землю, как в болото."),
+  temari:D("temari","Демон с мячами тэмари",5,115,14,3,5,48,40,"#ff78aa",0,"Её мячи сносят стены."),
+  drum:D("drum","Демон-барабанщик",6,140,15,4,5,58,48,"#ff9628",2,"Удар в барабан — и комнаты переворачиваются."),
+  spider:D("spider","Демон-паук горы Натагумо",8,175,19,6,5,80,65,"#e6e6ff",0,"Нити управляют телами мечников."),
+  arrow:D("arrow","Демон с глазами на ладонях",10,210,22,8,6,100,80,"#b450dc",2,"Видит атаки и отбрасывает их стрелами."),
+  train:D("train","Демон из поезда «Бесконечный»",12,250,26,9,6,125,100,"#78c8ff",1,"Плоть, сросшаяся с вагонами."),
+  yoshiwara:D("yoshiwara","Демон квартала Ёсивара",14,300,30,11,6,150,120,"#ff468c",2,"Прячется среди куртизанок."),
+  village:D("village","Демон-рыба из кувшина",17,360,35,13,7,190,150,"#78e6c8",0,"Порождение Высшей Луны."),
+  infinity:D("infinity","Демон Замка Бесконечности",21,450,44,17,8,260,210,"#be00ff",3,"Комнаты сдвигаются по звуку бивы."),
 };
 const BOSSES = {
-  moon6:D("moon6","Хохочущая Маска",6,420,20,6,6,300,400,"#ff2850",2,"Шестая Кровавая Луна. Смеётся, пока ест."),
-  moon3:D("moon3","Кулак Бездны",13,900,34,12,7,800,1100,"#ff3cb4",3,"Третья Кровавая Луна. Ищет сильных противников."),
-  moon1:D("moon1","Владыка Затмения",20,1800,52,20,8,2200,3500,"#be00ff",4,"Первая Кровавая Луна. Шесть глаз, ни капли жалости."),
+  rui:D("rui","Низшая Луна Пять — Руй",6,420,20,6,6,300,400,"#e6e6ff",0,"Мальчик-демон. Его нити режут даже клинки Нитирин."),
+  enmu:D("enmu","Низшая Луна Один — Энму",10,650,26,9,7,500,650,"#78c8ff",1,"Демон снов, слившийся с поездом."),
+  gyutaro:D("gyutaro","Высшая Луна Шесть — Гютаро и Даки",14,1000,33,12,7,800,1100,"#ff2878",2,"Брат и сестра — одна Луна."),
+  hantengu:D("hantengu","Высшая Луна Четыре — Хантэнгу",18,1300,40,15,8,1100,1600,"#78e678",2,"Делится на воплощения эмоций."),
+  akaza:D("akaza","Высшая Луна Три — Аказа",22,1800,50,20,8,1600,2400,"#ff3cb4",0,"Мастер боевых искусств. Уважает только сильных."),
+  kokushibo:D("kokushibo","Высшая Луна Один — Кокушибо",27,2600,62,25,9,2500,4000,"#be00ff",4,"Шесть глаз. Дыхание Луны."),
 };
 const LOCS = [
-  {id:"village",name:"Деревня у подножья",lvl:1,sky:["#0a0a26","#3a1a4a"],moon:"#f5ebd2",pool:["hungry","swamp"]},
-  {id:"bamboo",name:"Бамбуковая роща",lvl:3,sky:["#061a14","#1d3a2c"],moon:"#e8f5d8",pool:["swamp","lantern"]},
-  {id:"mountain",name:"Гора Шёпота",lvl:6,sky:["#0a0820","#2a1846"],moon:"#f0e6ff",pool:["lantern","weaver"],boss:"moon6"},
-  {id:"quarter",name:"Ночной квартал",lvl:8,sky:["#1a0612","#5a1a2a"],moon:"#ffd6a0",pool:["weaver","puppet"]},
-  {id:"temple",name:"Заброшенный храм",lvl:11,sky:["#0c0c14","#2c2438"],moon:"#e0e0e8",pool:["puppet","bone"],boss:"moon3"},
-  {id:"gorge",name:"Туманное ущелье",lvl:15,sky:["#101820","#3a4a5a"],moon:"#d8e4f0",pool:["fox","faceless"]},
-  {id:"castle",name:"Багровый замок",lvl:19,sky:["#200008","#6a0a2a"],moon:"#ff3040",pool:["faceless","mirror"],boss:"moon1"},
+  {id:"fuji",name:"Гора Фудзикасанэ",lvl:1,sky:["#0a0a26","#3a1a4a"],moon:"#f5ebd2",pool:["hungry","hands"]},
+  {id:"asakusa",name:"Асакуса",lvl:3,sky:["#1a0612","#4a1a2a"],moon:"#ffd6a0",pool:["hands","swamp","temari"]},
+  {id:"drum",name:"Особняк с барабанами",lvl:5,sky:["#061a14","#1d3a2c"],moon:"#e8f5d8",pool:["temari","drum"]},
+  {id:"natagumo",name:"Гора Натагумо",lvl:6,sky:["#0a0820","#2a1846"],moon:"#f0e6ff",pool:["drum","spider"],bosses:["rui"]},
+  {id:"train",name:"Поезд «Бесконечный»",lvl:10,sky:["#0c0c14","#2c2438"],moon:"#e0e0e8",pool:["arrow","train"],bosses:["enmu","akaza"]},
+  {id:"yoshiwara",name:"Квартал Ёсивара",lvl:14,sky:["#200008","#6a1a3a"],moon:"#ffb0c0",pool:["train","yoshiwara"],bosses:["gyutaro"]},
+  {id:"village",name:"Деревня кузнецов",lvl:17,sky:["#101820","#3a4a5a"],moon:"#d8e4f0",pool:["yoshiwara","village"],bosses:["hantengu"]},
+  {id:"castle",name:"Замок Бесконечности",lvl:21,sky:["#200008","#6a0a2a"],moon:"#ff3040",pool:["village","infinity"],bosses:["kokushibo"]},
 ];
-const WEAPONS={w0:{n:"Учебный клинок",atk:0,p:0},w1:{n:"Клинок из закалённой стали",atk:5,p:200},w2:{n:"Клинок, впитавший солнце",atk:12,p:800},w3:{n:"Багровый клинок",atk:22,p:2500},w4:{n:"Клинок Рассвета",atk:36,p:7000}};
-const ARMORS={a0:{n:"Форма новобранца",def:0,dodge:0,p:0},a1:{n:"Хаори с узором волн",def:3,dodge:2,p:150},a2:{n:"Хаори из шёлка глицинии",def:7,dodge:5,p:650},a3:{n:"Хаори Стража",def:14,dodge:8,p:3000}};
-const ITEMS={potion:{n:"Целебный отвар",e:"🧪",p:30,d:"+45% здоровья"},wisteria:{n:"Яд глицинии",e:"🌸",p:60,d:"Останавливает регенерацию демона"},pill:{n:"Пилюля дыхания",e:"💊",p:45,d:"Полное дыхание"},onigiri:{n:"Онигири",e:"🍙",p:80,d:"+4 энергии"}};
-const TRAIN=[["hp","🏔 Бег по горам с грузом",8,"+8 здоровья"],["atk","⛰ Разрубить валун",1,"+1 атаки"],["br","🧘 Медитация у водопада",2,"+2 дыхания"],["dodge","🍃 Ловля листьев",1,"+1% уклона"],["crit","🎯 Удары по летящим тыквам",1,"+1% крита"]];
+const WEAPONS={w0:{n:"Клинок Нитирин новобранца",atk:0,p:0},w1:{n:"Клинок Нитирин из руды горы Ёко",atk:5,p:200},w2:{n:"Клинок Нитирин работы Деревни кузнецов",atk:12,p:800},w3:{n:"Клинок Нитирин мастера Хаганэдзуки",atk:22,p:2500},w4:{n:"Алый клинок Нитирин",atk:36,p:7000}};
+const ARMORS={a0:{n:"Форма Корпуса истребителей",def:0,dodge:0,p:0},a1:{n:"Хаори с узором волн",def:3,dodge:2,p:150},a2:{n:"Хаори в зелёно-чёрную клетку",def:7,dodge:5,p:650},a3:{n:"Хаори Столпа",def:14,dodge:8,p:3000}};
+const ITEMS={potion:{n:"Лекарство Поместья бабочки",e:"🦋",p:30,d:"+45% здоровья"},wisteria:{n:"Яд глицинии",e:"🌸",p:60,d:"Останавливает регенерацию демона"},pill:{n:"Отвар Тотальной концентрации",e:"🍵",p:45,d:"Полное дыхание"},onigiri:{n:"Онигири",e:"🍙",p:80,d:"+4 энергии"}};
+const TRAIN=[["hp","🏔 Спуск с горы Сагири с ловушками",8,"+8 здоровья"],["atk","⛰ Разрубить огромный валун",1,"+1 атаки"],["br","🎐 Надуть и лопнуть тыкву",2,"+2 дыхания"],["dodge","🦋 Догонялки в Поместье бабочки",1,"+1% уклона"],["crit","🪵 Удары под водопадом",1,"+1% крита"]];
 const MAXE=10, E_EVERY=300, BOSS_CD=1800;
 
 /* ================== TELEGRAM ================== */
@@ -271,17 +279,21 @@ function loadCloud(){
 /* ================== ЛОГИКА ================== */
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const ri=(a,b)=>Math.floor(rnd(a,b+1));
-const rank=l=>RANKS.filter(r=>l>=r[0]).pop()[1];
+const rankName=p=>(p.rank||0)>=RANKS.length?STYLES[p.style].h:RANKS[p.rank||0][0];
+function rankReqs(p){const r=p.rank||0; if(r>=RANKS.length)return null;
+  if(r+1<RANKS.length){const [n,k,l,kills]=RANKS[r+1];return {next:n,reqs:[[`Уровень ${l}`,p.level>=l],[`Убито демонов: ${p.kills}/${kills}`,p.kills>=kills]]}}
+  return {next:STYLES[p.style].h,reqs:[[`Уровень ${HASHIRA_LVL}`,p.level>=HASHIRA_LVL],["Ранг Киноэ",true],["Победа над одной из Двенадцати Лун",p.bossKills>0]]}}
+const canPromote=p=>{const r=rankReqs(p);return !!r&&r.reqs.every(x=>x[1])};
 const xpNeed=l=>Math.floor(60*Math.pow(l,1.6));
 function newPlayer(style){
   const p={name:tgName||"Мечник",style,level:1,xp:0,gold:50,base:{hp:100,atk:10,def:3,crit:5,dodge:5,br:20},
     hp:0,energy:MAXE,ts:Date.now(),hpTs:Date.now(),weapon:"w0",armor:"a0",items:{potion:3,wisteria:1,pill:1,onigiri:0},
-    kills:0,bossKills:0,deaths:0,bossTs:0,beaten:[]};
+    kills:0,bossKills:0,deaths:0,bossTs:0,beaten:[],rank:0};
   p.hp=stats(p).hp; return p;
 }
 function stats(p){
-  const b=p.base,s=STYLES[p.style].bonus,w=WEAPONS[p.weapon],a=ARMORS[p.armor];
-  return {hp:b.hp+s.hp,atk:b.atk+s.atk+w.atk,def:b.def+s.def+a.def,crit:Math.min(60,b.crit+s.crit),dodge:Math.min(45,b.dodge+s.dodge+a.dodge),br:b.br};
+  const b=p.base,s=STYLES[p.style].bonus,w=WEAPONS[p.weapon],a=ARMORS[p.armor],r=p.rank||0,hs=r>=RANKS.length;
+  return {hp:b.hp+s.hp+8*r+(hs?50:0),atk:b.atk+s.atk+w.atk+2*r+(hs?10:0),def:b.def+s.def+a.def+r+(hs?5:0),crit:Math.min(60,b.crit+s.crit),dodge:Math.min(45,b.dodge+s.dodge+a.dodge),br:b.br};
 }
 function tick(){
   const now=Date.now(), s=stats(P);
@@ -293,13 +305,13 @@ function tick(){
 function addXp(x){
   const msgs=[]; P.xp+=x;
   while(P.xp>=xpNeed(P.level)){
-    P.xp-=xpNeed(P.level); const old=rank(P.level); P.level++;
+    P.xp-=xpNeed(P.level); P.level++;
     const b=P.base; b.hp+=12;b.atk+=2;b.def+=1;b.br+=2; if(P.level%3===0){b.crit++;b.dodge++}
     P.hp=stats(P).hp;
     msgs.push(`🎉 <b>Уровень ${P.level}!</b>`);
     STYLES[P.style].forms.forEach(f=>{if(f[1]===P.level)msgs.push(`📜 Новая техника: <b>${f[0]}</b>`)});
-    if(rank(P.level)!==old)msgs.push(`🎖 Новый ранг: <b>${rank(P.level)}</b>`);
   }
+  if(canPromote(P))msgs.push("🐦 <i>Кар! Ты готов к аттестации! Вкладка «Ранг».</i>");
   return msgs;
 }
 function scaled(t,boss){
@@ -404,7 +416,7 @@ function renderCreate(){
 }
 $("#startBtn").onclick=()=>{haptic("medium"); if(P){openHub()} else {show("create");renderCreate()}};
 $("#pickBtn").onclick=()=>{P=newPlayer(picked);save();notify("success");
-  modal(`<div style="width:120px;margin:0 auto">${slayerSVG(STYLES[picked].c)}</div><div class="big">Клинок окрасился</div><p class="muted">Сталь стала цвета <b style="color:${STYLES[picked].c}">${STYLES[picked].name}</b>. Ворон-посланник уже кружит над головой: «Кар! Деревня у подножья! Демон!»</p><button class="btn" onclick="closeModal();openHub()">В путь</button>`)};
+  modal(`<div style="width:120px;margin:0 auto">${slayerSVG(STYLES[picked].c)}</div><div class="big">Клинок Нитирин</div><p class="muted">Кузнец принёс твой клинок, и сталь окрасилась в цвет стиля — <b style="color:${STYLES[picked].c}">${STYLES[picked].name}</b>. Тебе выдали форму Корпуса и ранг <b>Мидзуното</b> (癸). Касугай-ворон уже кричит: «Кар! Демон! На север!»</p><button class="btn" onclick="closeModal();openHub()">В путь</button>`)};
 
 /* ---- хаб ---- */
 let tab="map";
@@ -424,19 +436,21 @@ function renderHub(){
     const eta=P.energy<MAXE?Math.max(0,E_EVERY-Math.floor((Date.now()-P.ts)/1000)):0;
     c.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><b>❤️ ${P.hp}/${st.hp}</b><span class="muted">${eta?`⚡+1 через ${Math.floor(eta/60)}:${String(eta%60).padStart(2,"0")}`:"энергия полна"}</span></div>
       <div class="bar hpb" style="margin-top:6px"><i style="width:${pct(P.hp,st.hp)}"></i></div>
-      ${P.hp<st.hp?`<button class="btn ghost" style="margin-top:10px;padding:10px" id="restBtn">🏮 Отдых в поместье глицинии (⚡1)</button>`:""}</div>
-      <div class="sec">Задания ворона</div>
-      ${LOCS.map((l,i)=>{const lock=P.level<l.lvl; const bossDone=l.boss&&P.beaten.includes(l.boss);
+      ${P.hp<st.hp?`<button class="btn ghost" style="margin-top:10px;padding:10px" id="restBtn">🏮 Дом с гербом глицинии (⚡1)</button>`:""}
+      ${canPromote(P)?`<button class="btn" style="margin-top:10px;padding:10px" id="goRank">🎖 Доступна аттестация на «${rankReqs(P).next}»</button>`:""}</div>
+      <div class="sec">Задания Касугай-ворона</div>
+      ${LOCS.map((l,i)=>{const lock=P.level<l.lvl;
         return `<button class="loc ${lock?"lock":""}" data-i="${i}"><div class="ico">${locIcon(l)}</div><div style="flex:1"><b>${l.name}</b><div class="muted">${l.pool.map(id=>DEMONS[id].name).join(", ")}</div><div class="tag">${lock?`🔒 с уровня ${l.lvl}`:"⚡1 — охота"}</div></div></button>
-        ${l.boss&&!lock?`<button class="loc boss-btn" data-boss="${l.boss}"><div class="ico" style="background:#000">${demonSVG(BOSSES[l.boss].c,BOSSES[l.boss].horns,true)}</div><div style="flex:1"><b>🌕 ${BOSSES[l.boss].name}</b><div class="muted">${BOSSES[l.boss].lore}</div><div class="tag">${bossDone?"✅ повержена · ":""}⚡3 · ур. ${BOSSES[l.boss].lvl}+</div></div></button>`:""}`}).join("")}`;
+        ${lock?"":(l.bosses||[]).map(bid=>{const B=BOSSES[bid],done=P.beaten.includes(bid);return `<button class="loc boss-btn" data-boss="${bid}"><div class="ico" style="background:#000">${demonSVG(B.c,B.horns,true)}</div><div style="flex:1"><b>🌕 ${B.name}</b><div class="muted">${B.lore}</div><div class="tag">${done?"✅ повержена · ":""}⚡3 · ур. ${B.lvl}+</div></div></button>`}).join("")}`}).join("")}`;
+    $("#goRank")&&($("#goRank").onclick=()=>{tab="rank";renderHub()});
     c.querySelectorAll(".loc[data-i]").forEach(b=>b.onclick=()=>{const l=LOCS[b.dataset.i]; if(P.level<l.lvl){toast(`Нужен уровень ${l.lvl}`);return} hunt(l)});
     c.querySelectorAll(".loc[data-boss]").forEach(b=>b.onclick=()=>bossFight(b.dataset.boss));
-    $("#restBtn")&&($("#restBtn").onclick=()=>{if(P.energy<1)return toast("Нет энергии");P.energy--;P.hp=st.hp;save();notify("success");toast("🏮 Хозяйка поместья перевязала раны");renderHub()});
+    $("#restBtn")&&($("#restBtn").onclick=()=>{if(P.energy<1)return toast("Нет энергии");P.energy--;P.hp=st.hp;save();notify("success");toast("🏮 В Доме с гербом глицинии тебя накормили и перевязали");renderHub()});
   }
   if(tab==="hero"){
     const s=STYLES[P.style];
     c.innerHTML=`<div class="card"><div class="row"><div style="width:110px;flex:none">${slayerSVG(s.c)}</div><div style="flex:1">
-      <p class="h">${P.name}</p><div style="color:var(--gold)">${rank(P.level)} · ур. ${P.level}</div><div style="color:${s.c}">${s.e} ${s.name}</div>
+      <p class="h">${P.name}</p><div style="color:var(--gold)">${rankName(P)} · ур. ${P.level}</div><div style="color:${s.c}">${s.e} ${s.name}</div>
       <div class="muted" style="margin-top:8px">Опыт ${P.xp}/${xpNeed(P.level)}</div><div class="bar xpb"><i style="width:${pct(P.xp,xpNeed(P.level))}"></i></div>
       <div class="muted" style="margin-top:6px">Энергия ${P.energy}/${MAXE}</div><div class="bar enb"><i style="width:${pct(P.energy,MAXE)}"></i></div></div></div></div>
       <div class="card"><div class="styles" style="gap:6px;font-size:14px">
@@ -444,7 +458,7 @@ function renderHub(){
         <div>🌬 Дыхание: <b>${st.br}</b></div><div>💥 Крит: <b>${st.crit}%</b></div><div>💨 Уклон: <b>${st.dodge}%</b></div></div></div>
       <div class="card"><b>Снаряжение</b><div class="muted">🗡 ${WEAPONS[P.weapon].n}<br>🥋 ${ARMORS[P.armor].n}</div></div>
       <div class="card"><b>Техники</b>${s.forms.map(f=>`<div style="margin-top:4px">${P.level>=f[1]?"✅":"🔒"} ${f[0]} <span class="muted">— ${f[2]}🌬, ур.${f[1]}</span></div>`).join("")}</div>
-      <div class="card"><b>Летопись</b><div class="muted">Демонов: ${P.kills} · Кровавых Лун: ${P.bossKills} · Поражений: ${P.deaths}</div></div>
+      <div class="card"><b>Летопись</b><div class="muted">Демонов: ${P.kills} · Лун: ${P.bossKills} · Поражений: ${P.deaths}</div></div>
       <div class="card"><b>🎒 Сумка</b>${Object.entries(ITEMS).map(([k,it])=>`<div class="item" style="margin-top:6px"><span>${it.e} ${it.n} ×${P.items[k]||0}</span>${k==="onigiri"&&P.items[k]?`<button class="buy" id="eat">Съесть</button>`:""}</div>`).join("")}</div>
       <button class="btn ghost" id="reset" style="margin-top:6px">Начать заново</button>`;
     $("#eat")&&($("#eat").onclick=()=>{P.items.onigiri--;P.energy=Math.min(MAXE,P.energy+4);save();toast("🍙 +4 энергии");renderHub()});
@@ -453,9 +467,34 @@ function renderHub(){
       $("#yesReset").onclick=()=>{P=null;try{localStorage.removeItem(KEY);tg?.CloudStorage?.removeItem(KEY)}catch(e){}closeModal();picked=null;show("create");renderCreate()};
     };
   }
+  if(tab==="rank"){
+    const cur=P.rank||0, s=STYLES[P.style], rq=rankReqs(P), ok=canPromote(P);
+    const kanji=cur>=RANKS.length?"柱":RANKS[cur][1];
+    c.innerHTML=`<div class="card" style="text-align:center">
+        <div style="font-size:64px;line-height:1.1;font-family:serif;color:${s.c};text-shadow:0 0 18px ${s.c}">${kanji}</div>
+        <p class="h" style="margin:6px 0 2px">${rankName(P)}</p>
+        <div class="muted">Сожми кулак — и знак ранга проступит на тыльной стороне ладони.</div></div>
+      ${rq?`<div class="card"><b>Аттестация на «${rq.next}»</b>${rq.reqs.map(([t,v])=>`<div style="margin-top:6px">${v?"✅":"❌"} ${t}</div>`).join("")}
+        <button class="btn" id="promoteBtn" style="margin-top:12px" ${ok?"":"disabled"}>🎖 Пройти аттестацию</button></div>`
+        :`<div class="card"><b>🏯 Ты — Столп</b><div class="muted">Опора Корпуса истребителей демонов. Выше только Глава клана Убуяшики.</div></div>`}
+      <div class="sec">Ранги Корпуса</div>
+      <div class="card">${RANKS.map((r,i)=>`<div class="item" style="padding:5px 0;${i===cur?`color:${s.c};font-weight:800`:i<cur?"":"opacity:.55"}"><span>${i<cur?"✅":i===cur?"▶️":"▫️"} <span style="font-family:serif">${r[1]}</span> ${r[0]}</span><span class="muted">ур.${r[2]} · ${r[3]} дем.</span></div>`).join("")}
+        <div class="item" style="padding:5px 0;${cur>=RANKS.length?`color:${s.c};font-weight:800`:"opacity:.55"}"><span>${cur>=RANKS.length?"▶️":"▫️"} <span style="font-family:serif">柱</span> ${s.h}</span><span class="muted">ур.${HASHIRA_LVL} · Луна</span></div></div>
+      <p class="muted">Каждый ранг: +8 здоровья, +2 атаки, +1 защиты и жалованье. Столп получает ещё +50 здоровья, +10 атаки, +5 защиты.</p>`;
+    $("#promoteBtn")&&($("#promoteBtn").onclick=()=>{
+      if(!canPromote(P))return;
+      P.rank=(P.rank||0)+1; const sal=100*P.rank; P.gold+=sal; P.hp=stats(P).hp; save(); notify("success");
+      const hs=P.rank>=RANKS.length;
+      modal(`<div style="font-size:80px;font-family:serif;color:${s.c};text-shadow:0 0 24px ${s.c}">${hs?"柱":RANKS[P.rank][1]}</div>
+        <div class="big">${hs?"Ты — Столп!":"Новый ранг!"}</div>
+        <p class="muted">${hs?`На Собрании Столпов Глава клана Убуяшики назначил тебя: <b style="color:${s.c}">${rankName(P)}</b>.`:`Касугай-ворон принёс весть: тебе присвоен ранг <b style="color:${s.c}">${rankName(P)}</b>.`}</p>
+        <p>💰 Жалованье: +${sal} рё<br>⚔️ ${stats(P).atk} · 🛡 ${stats(P).def} · ❤️ ${stats(P).hp}</p>
+        <button class="btn" onclick="closeModal();renderHub()">Служу Корпусу!</button>`);
+    });
+  }
   if(tab==="train"){
     c.innerHTML=`<div class="card" style="padding:0;overflow:hidden"><svg viewBox="0 0 400 180" preserveAspectRatio="xMidYMid slice" style="width:100%;display:block">${skySVG("#2a3a6a","#f0a070","#ffd28c",{mx:300,my:120,mr:40,wisteria:false})}</svg>
-      <div style="padding:12px"><b>Тренировка на рассвете</b><div class="muted">Каждое упражнение — ⚡2. Наставник суров, но результат навсегда.</div></div></div>
+      <div style="padding:12px"><b>Тренировка Столпов</b><div class="muted">Тотальная концентрация дыхания — днём и ночью. Каждое упражнение — ⚡2, результат навсегда.</div></div></div>
       ${TRAIN.map(t=>`<button class="loc" data-t="${t[0]}"><div style="font-size:30px">${t[1].split(" ")[0]}</div><div style="flex:1"><b>${t[1].slice(t[1].indexOf(" ")+1)}</b><div class="tag">${t[3]} · ⚡2</div></div></button>`).join("")}`;
     c.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{
       const t=TRAIN.find(x=>x[0]===b.dataset.t); if(P.energy<2)return toast("Слишком устал. Нужно ⚡2");
@@ -488,14 +527,14 @@ function hunt(loc){
   const pool=loc.pool.map(id=>DEMONS[id]); startFight(scaled(pool[ri(0,pool.length-1)],false),loc);
 }
 function bossFight(id){
-  tick(); const b=BOSSES[id], loc=LOCS.find(l=>l.boss===id);
+  tick(); const b=BOSSES[id], loc=LOCS.find(l=>(l.bosses||[]).includes(id));
   if(P.level<b.lvl)return toast(`Слишком опасно. Нужен уровень ${b.lvl}`);
   const wait=Math.ceil((BOSS_CD*1000-(Date.now()-P.bossTs))/60000); if(wait>0)return toast(`Луна ещё не взошла. Жди ${wait} мин.`);
   if(P.energy<3)return toast("Нужно ⚡3");
   P.energy-=3;P.bossTs=Date.now();save(); startFight(scaled(b,true),loc);
 }
 function startFight(e,loc){
-  F={e,turn:1,poison:0,burn:0,stun:0,shield:0,evade:0,br:stats(P).br,log:[e.boss?`🌕 <i>Луна налилась кровью...</i>`:`🐦 <i>Кар! Демон рядом!</i>`,`<i>${e.lore}</i>`]};
+  F={e,turn:1,poison:0,burn:0,stun:0,shield:0,evade:0,br:stats(P).br,log:[e.boss?`🌕 <i>В глазах демона — иероглифы Луны...</i>`:`🐦 <i>Кар! Демон рядом!</i>`,`<i>${e.lore}</i>`]};
   $("#arenaBg").innerHTML=e.boss?skySVG("#1a0006","#6a0a24","#e0203c",{mr:44}):skySVG(loc.sky[0],loc.sky[1],loc.moon);
   $("#demon").innerHTML=demonSVG(e.c,e.horns,e.boss); $("#demon").style.width=e.boss?"66%":"56%";
   $("#slayer").innerHTML=slayerSVG(STYLES[P.style].c);
@@ -615,7 +654,7 @@ async function onAct(a,x){
 function win(){
   const e=F.e; notify("success");
   P.gold+=e.gold; P.kills++; const lines=[`✨ +${e.xp} опыта · 💰 +${e.gold} рё`];
-  if(e.boss){P.bossKills++; if(!P.beaten.includes(e.id)){P.beaten.push(e.id);lines.push("🌕 <b>Кровавая Луна повержена!</b>")}}
+  if(e.boss){P.bossKills++; if(!P.beaten.includes(e.id)){P.beaten.push(e.id);lines.push("🌕 <b>Одна из Двенадцати Лун повержена! Весь Корпус узнает об этом.</b>")}}
   if(Math.random()<.35){const k=["potion","potion","pill","wisteria"][ri(0,3)];P.items[k]=(P.items[k]||0)+1;lines.push(`🎁 Найдено: ${ITEMS[k].e} ${ITEMS[k].n}`)}
   lines.push(...addXp(e.xp)); P.hpTs=Date.now(); save();
   modal(`<div style="width:120px;margin:0 auto">${slayerSVG(STYLES[P.style].c)}</div><div class="big">${e.boss?"Луна пала!":"Демон повержен"}</div>
@@ -624,7 +663,7 @@ function win(){
 }
 function lose(){
   notify("error"); P.deaths++; const lost=Math.floor(P.gold/5); P.gold-=lost; P.hp=Math.max(1,Math.floor(stats(P).hp/4)); P.hpTs=Date.now(); save();
-  modal(`<div class="big" style="color:var(--accent)">Поражение</div><p class="muted">Отряд скрытых вынес тебя с поля боя. Потеряно ${lost} рё.</p><p>Тренируйся, купи яд глицинии — и возвращайся.</p><button class="btn" onclick="closeModal();openHub()">В штаб</button>`);
+  modal(`<div class="big" style="color:var(--accent)">Поражение</div><p class="muted">Какуси — отряд скрытых — вынесли тебя с поля боя. Потеряно ${lost} рё.</p><p>Тренируйся, купи яд глицинии — и возвращайся.</p><button class="btn" onclick="closeModal();openHub()">В штаб</button>`);
 }
 
 /* ================== СТАРТ ================== */
