@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Охотники на демонов</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Neucha&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0816; --panel:#16112a; --panel2:#201838; --line:#2f2550;
+  --text:#efeaff; --muted:#a59bc9; --accent:#ff3d6e; --gold:#ffcc55;
+  --hp:#e8435f; --br:#5fb8ff; --xp:#9b7bff; --style:#5fb8ff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Rubik,system-ui,sans-serif;overflow:hidden}
+button{font-family:inherit;color:inherit;border:0;cursor:pointer}
+#app{position:relative;height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden}
+.screen{position:absolute;inset:0;display:none;flex-direction:column}
+.screen.on{display:flex;animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* фон */
+.sky{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.sky svg{width:100%;height:100%}
+.petal{position:absolute;top:-20px;width:10px;height:6px;border-radius:50%;background:#d9b8ff;opacity:.8;animation:fall linear infinite}
+@keyframes fall{to{transform:translate(-60px,110vh) rotate(540deg)}}
+.content{position:relative;z-index:1;flex:1;overflow-y:auto;padding:16px;padding-bottom:90px}
+
+/* заголовок */
+.title{font-family:Neucha,cursive;text-align:center;margin-top:28vh}
+.title h1{font-size:46px;margin:0;letter-spacing:2px;text-shadow:0 0 18px #ff3d6e88,3px 3px 0 #000}
+.title h2{font-size:28px;margin:0;color:var(--accent);text-shadow:3px 3px 0 #000}
+.title p{color:var(--muted);margin:14px 0 30px}
+.btn{display:block;width:100%;padding:14px;border-radius:14px;background:linear-gradient(135deg,#ff3d6e,#b81d64);font-weight:800;font-size:17px;box-shadow:0 6px 20px #ff3d6e44;transition:transform .1s}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:var(--panel2);box-shadow:none;border:1px solid var(--line)}
+.btn:disabled{opacity:.45}
+
+/* карточки */
+.card{background:color-mix(in srgb,var(--panel) 88%,transparent);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;backdrop-filter:blur(6px)}
+.row{display:flex;gap:10px;align-items:center}
+.muted{color:var(--muted);font-size:14px}
+.h{font-weight:800;font-size:18px;margin:0 0 6px}
+.styles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.style{padding:12px;border-radius:14px;background:var(--panel);border:2px solid var(--line);text-align:left}
+.style.sel{border-color:var(--c);box-shadow:0 0 18px color-mix(in srgb,var(--c) 50%,transparent)}
+.style b{display:block;color:var(--c);margin:4px 0}
+.style .e{font-size:26px}
+
+/* бары */
+.bar{height:10px;background:#0006;border-radius:6px;overflow:hidden;border:1px solid #fff1}
+.bar>i{display:block;height:100%;border-radius:6px;transition:width .4s ease}
+.hpb>i{background:linear-gradient(90deg,#ff5c7a,#c4123a)}
+.brb>i{background:linear-gradient(90deg,#8fd3ff,#3d8bff)}
+.xpb>i{background:linear-gradient(90deg,#c3a8ff,#7a4dff)}
+.enb>i{background:linear-gradient(90deg,#ffe08a,#ffaa00)}
+
+/* шапка */
+.top{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#0b0816cc;border-bottom:1px solid var(--line);backdrop-filter:blur(8px);font-size:14px}
+.pill{background:var(--panel2);padding:5px 10px;border-radius:20px;border:1px solid var(--line)}
+
+/* карта */
+.loc{position:relative;display:flex;gap:12px;align-items:center;padding:12px;border-radius:16px;background:var(--panel);border:1px solid var(--line);margin-bottom:10px;width:100%;text-align:left;overflow:hidden}
+.loc .ico{width:58px;height:58px;border-radius:12px;flex:none;overflow:hidden}
+.loc.lock{opacity:.45;filter:grayscale(.7)}
+.loc .tag{font-size:12px;color:var(--gold)}
+.boss-btn{background:linear-gradient(135deg,#5a0b26,#26061a);border-color:#ff3d6e66}
+
+/* нижняя навигация */
+.nav{position:absolute;bottom:0;left:0;right:0;z-index:3;display:flex;background:#0d0a1cf0;border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+.nav button{flex:1;background:none;padding:6px 0;font-size:11px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
+.nav button span{font-size:20px}
+.nav button.on{color:var(--text)}
+
+/* бой */
+#battle .arena{position:relative;z-index:1;height:46vh;min-height:280px}
+#battle .arena svg.bg{position:absolute;inset:0;width:100%;height:100%}
+.ehud{position:absolute;top:10px;left:14px;right:14px;z-index:3}
+.ehud .n{font-weight:800;text-shadow:2px 2px 0 #000;font-size:16px}
+.fx{position:absolute;inset:0;z-index:4;pointer-events:none}
+.demon{position:absolute;right:4%;bottom:6%;width:58%;z-index:2;animation:bob 2.4s ease-in-out infinite}
+.slayer{position:absolute;left:2%;bottom:4%;width:36%;z-index:2}
+@keyframes bob{50%{transform:translateY(-8px)}}
+.hit{animation:hit .35s}
+@keyframes hit{20%{transform:translateX(10px);filter:brightness(3)}60%{transform:translateX(-6px)}}
+.lunge{animation:lunge .4s}
+@keyframes lunge{40%{transform:translateX(60%) }}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translate(6px,-3px)}50%{transform:translate(-6px,3px)}75%{transform:translate(3px,2px)}}
+.dmg{position:absolute;font-weight:800;font-size:28px;text-shadow:2px 2px 0 #000,0 0 10px #000;animation:pop 1s forwards;z-index:6}
+@keyframes pop{0%{transform:scale(.4);opacity:0}20%{transform:scale(1.2);opacity:1}100%{transform:translateY(-60px);opacity:0}}
+.slash{position:absolute;right:5%;top:15%;width:65%;z-index:5;animation:slash .5s forwards}
+@keyframes slash{0%{opacity:0;transform:scale(.6) rotate(-20deg)}30%{opacity:1}100%{opacity:0;transform:scale(1.15) rotate(5deg)}}
+.bpanel{position:relative;z-index:2;flex:1;background:linear-gradient(#120d24,#0b0816);border-top:2px solid var(--line);padding:10px 12px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+.log{font-size:13px;color:var(--muted);min-height:36px;line-height:1.35}
+.log b{color:var(--text)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.act{padding:11px 8px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-weight:600;font-size:14px}
+.act.form{grid-column:span 2;background:linear-gradient(135deg,color-mix(in srgb,var(--style) 35%,#1a1430),#1a1430);border-color:color-mix(in srgb,var(--style) 60%,transparent);text-align:left;display:flex;justify-content:space-between}
+.act:disabled{opacity:.4}
+.act:active{transform:scale(.97)}
+
+/* тайминг */
+#timing{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;background:#000a;flex-direction:column;gap:18px}
+#timing.on{display:flex}
+#timing .t{font-family:Neucha;font-size:30px;text-shadow:0 0 12px var(--style)}
+.track{position:relative;width:80%;height:26px;border-radius:14px;background:#221a3a;border:2px solid #fff3;overflow:hidden}
+.zone{position:absolute;top:0;bottom:0;left:40%;width:20%;background:#ffffff22}
+.zone.p{left:46%;width:8%;background:var(--style)}
+.mark{position:absolute;top:-2px;bottom:-2px;width:5px;background:#fff;box-shadow:0 0 10px #fff}
+
+/* модалка */
+#modal{position:absolute;inset:0;z-index:30;display:none;align-items:center;justify-content:center;background:#000b;padding:20px}
+#modal.on{display:flex}
+#modal .card{width:100%;max-width:420px;text-align:center;animation:fade .3s}
+#modal .big{font-family:Neucha;font-size:34px;margin:4px 0}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.item .buy{padding:8px 12px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);white-space:nowrap;font-weight:600}
+.sec{font-weight:800;margin:16px 0 8px;color:var(--muted);font-size:13px;letter-spacing:1px;text-transform:uppercase}
+.toast{position:absolute;left:50%;top:70px;transform:translateX(-50%);z-index:40;background:#2a1f48;border:1px solid var(--line);padding:10px 16px;border-radius:12px;font-size:14px;animation:fade .3s;max-width:90%;text-align:center}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="sky" id="sky"></div>
+
+  <!-- ТИТУЛ -->
+  <section class="screen on" id="title">
+    <div class="content" style="padding-bottom:16px">
+      <div class="title">
+        <h1>ОХОТНИКИ</h1><h2>НА ДЕМОНОВ</h2>
+        <p>ночь — время клинка</p>
+      </div>
+      <button class="btn" id="startBtn">Начать путь</button>
+    </div>
+  </section>
+
+  <!-- ВЫБОР СТИЛЯ -->
+  <section class="screen" id="create">
+    <div class="content">
+      <div class="card"><p class="h">🌬 Искусство Дыхания</p>
+        <p class="muted">Ты прошёл испытание на горе, усыпанной глицинией. Выбери стиль — от него зависят техники и сильные стороны.</p></div>
+      <div class="styles" id="styleList"></div>
+      <div class="card" id="styleInfo" style="margin-top:12px"></div>
+      <button class="btn" id="pickBtn" disabled>Взять клинок</button>
+    </div>
+  </section>
+
+  <!-- ХАБ -->
+  <section class="screen" id="hub">
+    <div class="top"><span id="tName">—</span><span><span class="pill" id="tEn">⚡10</span> <span class="pill" id="tGold">💰0</span></span></div>
+    <div class="content" id="hubContent"></div>
+    <nav class="nav">
+      <button data-tab="map" class="on"><span>🗺</span>Карта</button>
+      <button data-tab="hero"><span>👤</span>Герой</button>
+      <button data-tab="train"><span>🏔</span>Тренировка</button>
+      <button data-tab="shop"><span>🏪</span>Лавка</button>
+    </nav>
+  </section>
+
+  <!-- БОЙ -->
+  <section class="screen" id="battle">
+    <div class="arena" id="arena">
+      <svg class="bg" id="arenaBg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"></svg>
+      <div class="ehud">
+        <div class="row" style="justify-content:space-between"><span class="n" id="eName"></span><span class="muted" id="eSt"></span></div>
+        <div class="bar hpb" style="height:12px;margin-top:4px"><i id="eHp"></i></div>
+        <div class="muted" id="eHpT" style="text-align:right;font-size:12px"></div>
+      </div>
+      <div class="slayer" id="slayer"></div>
+      <div class="demon" id="demon"></div>
+      <div class="fx" id="fx"></div>
+    </div>
+    <div class="bpanel">
+      <div class="log" id="log"></div>
+      <div>
+        <div class="row" style="font-size:12px;justify-content:space-between"><span>❤️ <span id="pHpT"></span></span><span>🌬 <span id="pBrT"></span></span></div>
+        <div class="row"><div class="bar hpb" style="flex:1"><i id="pHp"></i></div><div class="bar brb" style="flex:1"><i id="pBr"></i></div></div>
+      </div>
+      <div class="acts" id="acts"></div>
+    </div>
+    <div id="timing"><div class="t">Тотальная концентрация!</div><div class="track"><div class="zone"></div><div class="zone p"></div><div class="mark" id="mark"></div></div><div class="muted">Нажми, когда метка в центре</div></div>
+  </section>
+
+  <div id="modal"><div class="card" id="modalCard"></div></div>
+</div>
+
+<script>
+/* ================== ДАННЫЕ ================== */
+const STYLES = {
+  water:{name:"Дыхание Воды",e:"🌊",c:"#46a0ff",desc:"Гибкий стиль. Формы лечат и сбивают демона с ритма.",
+    bonus:{hp:10,atk:3,def:1,crit:6,dodge:6},
+    forms:[["Режущий поток",1,6,1.8,null],["Тихая гладь",5,8,1.4,"heal"],["Водоворот бездны",10,14,3.2,"stun"]]},
+  flame:{name:"Дыхание Пламени",e:"🔥",c:"#ff6e28",desc:"Яростный натиск. Огромный урон и поджог.",
+    bonus:{hp:0,atk:4,def:0,crit:5,dodge:0},
+    forms:[["Восход пламени",1,6,2.0,null],["Огненный вихрь",5,9,1.6,"burn"],["Чистилище",10,15,3.6,"burn"]]},
+  thunder:{name:"Дыхание Грома",e:"⚡",c:"#ffdc3c",desc:"Скорость молнии. Высокий шанс крита.",
+    bonus:{hp:0,atk:2,def:0,crit:18,dodge:5},
+    forms:[["Раскат грома",1,6,2.1,"crit"],["Рой молний",5,9,0.8,"multi"],["Бог грозы",10,15,3.4,"crit"]]},
+  wind:{name:"Дыхание Ветра",e:"🌪",c:"#78e6aa",desc:"Режущие порывы. Много ударов подряд.",
+    bonus:{hp:5,atk:3,def:0,crit:8,dodge:4},
+    forms:[["Пыльный смерч",1,6,1.9,null],["Клинки бури",5,9,0.75,"multi"],["Око тайфуна",10,15,3.3,"stun"]]},
+  stone:{name:"Дыхание Камня",e:"⛰",c:"#c8a878",desc:"Несокрушимость скалы. Много здоровья и защиты.",
+    bonus:{hp:35,atk:3,def:4,crit:4,dodge:0},
+    forms:[["Обвал",1,6,1.8,null],["Гранитный щит",5,8,1.2,"shield"],["Гнев горы",10,15,3.5,"stun"]]},
+  mist:{name:"Дыхание Тумана",e:"🌫",c:"#c8d2f0",desc:"Призрачные шаги. Демонам трудно попасть.",
+    bonus:{hp:0,atk:2,def:0,crit:8,dodge:18},
+    forms:[["Призрачный шаг",1,6,1.9,null],["Пелена",5,8,1.3,"evade"],["Лунная дымка",10,15,3.4,"evade"]]},
+};
+const RANKS=[[1,"Новобранец"],[4,"Младший мечник"],[8,"Мечник"],[12,"Старший мечник"],[16,"Охотник Ордена"],[20,"Мастер клинка"],[25,"Страж Ордена"]];
+const D = (id,name,lvl,hp,atk,def,regen,xp,gold,c,horns,lore)=>({id,name,lvl,hp,atk,def,regen,xp,gold,c,horns,lore});
+const DEMONS = {
+  hungry:D("hungry","Голодный демон",1,45,7,1,3,18,15,"#c82828",1,"Недавно обращённый. Почти не помнит, кем был."),
+  swamp:D("swamp","Болотный пожиратель",2,70,9,2,4,28,22,"#5aaa3c",0,"Утаскивает путников в трясину."),
+  lantern:D("lantern","Демон бумажных фонарей",4,95,12,3,4,40,35,"#ff9628",2,"Заманивает детей огоньками."),
+  weaver:D("weaver","Паучиха-ткачиха",6,130,15,4,5,58,48,"#e6e6ff",0,"Её нити прочнее стали."),
+  puppet:D("puppet","Демон-кукловод",8,170,19,6,5,80,65,"#b450dc",2,"Управляет телами жертв, как марионетками."),
+  bone:D("bone","Костяной самурай",11,230,24,9,6,110,90,"#ebe1c8",2,"Носит доспех из костей павших мечников."),
+  fox:D("fox","Огненная лиса",14,290,30,11,6,150,120,"#ff5a1e",3,"Девять хвостов — девять сожжённых деревень."),
+  faceless:D("faceless","Безликий из тумана",18,370,37,14,7,200,160,"#96aabe",0,"Ты услышишь только шёпот."),
+  mirror:D("mirror","Демон тысячи зеркал",22,460,45,18,8,270,220,"#78e6ff",4,"Каждое отражение — ещё одна пасть."),
+};
+const BOSSES = {
+  moon6:D("moon6","Хохочущая Маска",6,420,20,6,6,300,400,"#ff2850",2,"Шестая Кровавая Луна. Смеётся, пока ест."),
+  moon3:D("moon3","Кулак Бездны",13,900,34,12,7,800,1100,"#ff3cb4",3,"Третья Кровавая Луна. Ищет сильных противников."),
+  moon1:D("moon1","Владыка Затмения",20,1800,52,20,8,2200,3500,"#be00ff",4,"Первая Кровавая Луна. Шесть глаз, ни капли жалости."),
+};
+const LOCS = [
+  {id:"village",name:"Деревня у подножья",lvl:1,sky:["#0a0a26","#3a1a4a"],moon:"#f5ebd2",pool:["hungry","swamp"]},
+  {id:"bamboo",name:"Бамбуковая роща",lvl:3,sky:["#061a14","#1d3a2c"],moon:"#e8f5d8",pool:["swamp","lantern"]},
+  {id:"mountain",name:"Гора Шёпота",lvl:6,sky:["#0a0820","#2a1846"],moon:"#f0e6ff",pool:["lantern","weaver"],boss:"moon6"},
+  {id:"quarter",name:"Ночной квартал",lvl:8,sky:["#1a0612","#5a1a2a"],moon:"#ffd6a0",pool:["weaver","puppet"]},
+  {id:"temple",name:"Заброшенный храм",lvl:11,sky:["#0c0c14","#2c2438"],moon:"#e0e0e8",pool:["puppet","bone"],boss:"moon3"},
+  {id:"gorge",name:"Туманное ущелье",lvl:15,sky:["#101820","#3a4a5a"],moon:"#d8e4f0",pool:["fox","faceless"]},
+  {id:"castle",name:"Багровый замок",lvl:19,sky:["#200008","#6a0a2a"],moon:"#ff3040",pool:["faceless","mirror"],boss:"moon1"},
+];
+const WEAPONS={w0:{n:"Учебный клинок",atk:0,p:0},w1:{n:"Клинок из закалённой стали",atk:5,p:200},w2:{n:"Клинок, впитавший солнце",atk:12,p:800},w3:{n:"Багровый клинок",atk:22,p:2500},w4:{n:"Клинок Рассвета",atk:36,p:7000}};
+const ARMORS={a0:{n:"Форма новобранца",def:0,dodge:0,p:0},a1:{n:"Хаори с узором волн",def:3,dodge:2,p:150},a2:{n:"Хаори из шёлка глицинии",def:7,dodge:5,p:650},a3:{n:"Хаори Стража",def:14,dodge:8,p:3000}};
+const ITEMS={potion:{n:"Целебный отвар",e:"🧪",p:30,d:"+45% здоровья"},wisteria:{n:"Яд глицинии",e:"🌸",p:60,d:"Останавливает регенерацию демона"},pill:{n:"Пилюля дыхания",e:"💊",p:45,d:"Полное дыхание"},onigiri:{n:"Онигири",e:"🍙",p:80,d:"+4 энергии"}};
+const TRAIN=[["hp","🏔 Бег по горам с грузом",8,"+8 здоровья"],["atk","⛰ Разрубить валун",1,"+1 атаки"],["br","🧘 Медитация у водопада",2,"+2 дыхания"],["dodge","🍃 Ловля листьев",1,"+1% уклона"],["crit","🎯 Удары по летящим тыквам",1,"+1% крита"]];
+const MAXE=10, E_EVERY=300, BOSS_CD=1800;
+
+/* ================== TELEGRAM ================== */
+const tg = window.Telegram?.WebApp;
+if (tg){ tg.ready(); tg.expand(); try{tg.setHeaderColor("#0b0816");tg.setBackgroundColor("#0b0816")}catch(e){} }
+const haptic=(t="light")=>{try{tg?.HapticFeedback?.impactOccurred(t)}catch(e){}};
+const notify=(t)=>{try{tg?.HapticFeedback?.notificationOccurred(t)}catch(e){}};
+const tgName = tg?.initDataUnsafe?.user?.first_name;
+
+/* ================== СОХРАНЕНИЕ ================== */
+const KEY="slayer_save_v1";
+let P=null;
+function save(){
+  const s=JSON.stringify(P);
+  try{localStorage.setItem(KEY,s)}catch(e){}
+  try{ if(tg?.CloudStorage && tg.isVersionAtLeast?.("6.9")) tg.CloudStorage.setItem(KEY,s) }catch(e){}
+}
+function loadLocal(){ try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null} }
+function loadCloud(){
+  return new Promise(res=>{
+    try{
+      if(!(tg?.CloudStorage && tg.isVersionAtLeast?.("6.9"))) return res(null);
+      tg.CloudStorage.getItem(KEY,(err,v)=>{ try{res(err||!v?null:JSON.parse(v))}catch(e){res(null)} });
+      setTimeout(()=>res(null),1500);
+    }catch(e){res(null)}
+  });
+}
+
+/* ================== ЛОГИКА ================== */
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const rank=l=>RANKS.filter(r=>l>=r[0]).pop()[1];
+const xpNeed=l=>Math.floor(60*Math.pow(l,1.6));
+function newPlayer(style){
+  const p={name:tgName||"Мечник",style,level:1,xp:0,gold:50,base:{hp:100,atk:10,def:3,crit:5,dodge:5,br:20},
+    hp:0,energy:MAXE,ts:Date.now(),hpTs:Date.now(),weapon:"w0",armor:"a0",items:{potion:3,wisteria:1,pill:1,onigiri:0},
+    kills:0,bossKills:0,deaths:0,bossTs:0,beaten:[]};
+  p.hp=stats(p).hp; return p;
+}
+function stats(p){
+  const b=p.base,s=STYLES[p.style].bonus,w=WEAPONS[p.weapon],a=ARMORS[p.armor];
+  return {hp:b.hp+s.hp,atk:b.atk+s.atk+w.atk,def:b.def+s.def+a.def,crit:Math.min(60,b.crit+s.crit),dodge:Math.min(45,b.dodge+s.dodge+a.dodge),br:b.br};
+}
+function tick(){
+  const now=Date.now(), s=stats(P);
+  if(P.energy>=MAXE) P.ts=now;
+  else{ const g=Math.floor((now-P.ts)/1000/E_EVERY); if(g>0){P.energy=Math.min(MAXE,P.energy+g); P.ts=P.energy>=MAXE?now:P.ts+g*E_EVERY*1000;} }
+  const heal=Math.floor(s.hp*0.03*(now-P.hpTs)/60000);
+  if(heal>0||P.hp>=s.hp){P.hp=Math.min(s.hp,P.hp+heal);P.hpTs=now}
+}
+function addXp(x){
+  const msgs=[]; P.xp+=x;
+  while(P.xp>=xpNeed(P.level)){
+    P.xp-=xpNeed(P.level); const old=rank(P.level); P.level++;
+    const b=P.base; b.hp+=12;b.atk+=2;b.def+=1;b.br+=2; if(P.level%3===0){b.crit++;b.dodge++}
+    P.hp=stats(P).hp;
+    msgs.push(`🎉 <b>Уровень ${P.level}!</b>`);
+    STYLES[P.style].forms.forEach(f=>{if(f[1]===P.level)msgs.push(`📜 Новая техника: <b>${f[0]}</b>`)});
+    if(rank(P.level)!==old)msgs.push(`🎖 Новый ранг: <b>${rank(P.level)}</b>`);
+  }
+  return msgs;
+}
+function scaled(t,boss){
+  const gap=Math.max(0,P.level-t.lvl), k=1+Math.min(.8,.07*gap);
+  return {...t,maxHp:Math.floor(t.hp*k),hp:Math.floor(t.hp*k),atk:Math.floor(t.atk*k),def:Math.floor(t.def*k),
+    xp:Math.floor(t.xp*(1+.04*gap)),gold:Math.floor(t.gold*(1+.04*gap)),boss};
+}
+
+/* ================== АРТ (SVG) ================== */
+function shade(hex,k){ // k<0 темнее, k>0 светлее
+  const n=parseInt(hex.slice(1),16); let r=n>>16,g=n>>8&255,b=n&255;
+  const f=v=>Math.max(0,Math.min(255,Math.round(k<0?v*(1+k):v+(255-v)*k)));
+  return `rgb(${f(r)},${f(g)},${f(b)})`;
+}
+let uid=0;
+function skySVG(top,bottom,moon,opt={}){
+  const id="g"+(uid++); let stars="";
+  for(let i=0;i<70;i++)stars+=`<circle cx="${ri(0,400)}" cy="${ri(0,170)}" r="${Math.random()<.85?.8:1.5}" fill="#fff" opacity="${rnd(.3,1).toFixed(2)}"/>`;
+  const mx=opt.mx??300, my=opt.my??70, mr=opt.mr??34;
+  let mtn=(y,c,seed)=>{let d=`M0 300 L0 ${y}`;for(let x=0;x<=420;x+=30){d+=` L${x} ${y+Math.sin(x*.03+seed)*22+Math.cos(x*.07+seed*2)*12}`}return `<path d="${d} L400 300Z" fill="${c}"/>`};
+  let pines=""; for(let i=0;i<9;i++){const x=ri(0,400),h=ri(30,60),y=250+ri(-6,10);pines+=`<path d="M${x} ${y-h} L${x-h*.25} ${y-h*.45} L${x-h*.12} ${y-h*.45} L${x-h*.35} ${y} L${x+h*.35} ${y} L${x+h*.12} ${y-h*.45} L${x+h*.25} ${y-h*.45}Z" fill="#07040c"/>`}
+  return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${top}"/><stop offset="1" stop-color="${bottom}"/></linearGradient>
+  <radialGradient id="${id}m"><stop offset=".55" stop-color="${moon}" stop-opacity=".55"/><stop offset="1" stop-color="${moon}" stop-opacity="0"/></radialGradient></defs>
+  <rect width="400" height="300" fill="url(#${id})"/>${stars}
+  <circle cx="${mx}" cy="${my}" r="${mr*2.6}" fill="url(#${id}m)"/><circle cx="${mx}" cy="${my}" r="${mr}" fill="${moon}"/>
+  <circle cx="${mx-mr*.3}" cy="${my-mr*.2}" r="${mr*.18}" fill="#000" opacity=".08"/><circle cx="${mx+mr*.3}" cy="${my+mr*.15}" r="${mr*.12}" fill="#000" opacity=".08"/>
+  ${mtn(190,shade(bottom,-.45),1)}${mtn(225,shade(bottom,-.7),4)}${pines}
+  <rect y="230" width="400" height="70" fill="#c8c8ff" opacity=".07"/>${opt.wisteria!==false?`<g transform="translate(${opt.wx||0},0)">${wisteria()}</g>`:""}`;
+}
+function wisteria(){
+  let s=`<path d="M-5 4 Q60 12 120 6" stroke="#3c2a20" stroke-width="4" fill="none"/>`;
+  for(let x=5;x<120;x+=14){const L=ri(40,90);for(let i=0;i<L;i+=5){const t=i/L,sp=(1-t)*8;for(let k=0;k<2;k++){
+    const r=(1-t)*3.2+1.2, c=`hsl(${270+t*10},${70}%,${75-t*25}%)`;
+    s+=`<circle cx="${(x+rnd(-sp,sp)).toFixed(1)}" cy="${(8+i+rnd(-2,2)).toFixed(1)}" r="${r.toFixed(1)}" fill="${c}" opacity=".9"/>`}}}
+  return s;
+}
+function demonSVG(color,horns,boss){
+  const id="d"+(uid++); let hornsS="";
+  for(let i=0;i<horns;i++)for(const s of[-1,1]){const o=14+i*14;hornsS+=`<path d="M${100+s*o} 62 L${100+s*(o+12)} 66 L${100+s*(o+20+i*6)} ${18-i*10}Z" fill="#0e060c"/>`}
+  let hair=""; for(let a=200;a<=340;a+=14){const r=a*Math.PI/180;hair+=`<path d="M${100+Math.cos(r)*30} ${80+Math.sin(r)*30} L${100+Math.cos(r+.2)*30} ${80+Math.sin(r+.2)*30} L${100+Math.cos(r+.1)*50} ${80+Math.sin(r+.1)*50}Z" fill="#0e060c"/>`}
+  let teeth=""; for(let k=-3;k<=3;k++)teeth+=`<path d="M${100+k*5-2} 98 L${100+k*5+2} 98 L${100+k*5} 104Z" fill="#fff"/>`;
+  const sixEyes = boss&&horns>=4 ? `<ellipse cx="88" cy="70" rx="5" ry="2.5" fill="${color}"/><ellipse cx="112" cy="70" rx="5" ry="2.5" fill="${color}"/><ellipse cx="90" cy="92" rx="4" ry="2" fill="${color}"/><ellipse cx="110" cy="92" rx="4" ry="2" fill="${color}"/>`:"";
+  return `<svg viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg"><defs>
+  <filter id="${id}a" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter>
+  <filter id="${id}g" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="2.5"/></filter></defs>
+  <g filter="url(#${id}a)" opacity=".9"><path d="M45 230 L60 170 L22 130 L60 108 L100 116 L140 108 L178 130 L140 170 L155 230Z" fill="${color}"/><circle cx="100" cy="80" r="36" fill="${color}"/></g>
+  <path d="M45 230 L60 170 L22 130 L60 108 L85 112 L100 120 L115 112 L140 108 L178 130 L140 170 L155 230Z" fill="#0e060c"/>
+  <path d="M22 130 L2 180 L14 184 L40 150Z M178 130 L198 180 L186 184 L160 150Z" fill="#0e060c"/>
+  <path d="M2 180 l-3 16 l6 -14 l2 16 l4 -16 l4 14 l1 -16Z M198 180 l3 16 l-6 -14 l-2 16 l-4 -16 l-4 14 l-1 -16Z" fill="#0e060c"/>
+  ${[0,1,2].map(k=>`<path d="M78 ${145+k*12} L94 ${149+k*12} M122 ${145+k*12} L106 ${149+k*12}" stroke="${color}" stroke-width="2" opacity=".55"/>`).join("")}
+  ${hair}<ellipse cx="100" cy="80" rx="31" ry="34" fill="#0e060c"/>${hornsS}
+  <g filter="url(#${id}g)"><path d="M78 76 L94 80 L82 85Z M122 76 L106 80 L118 85Z" fill="${color}"/>${sixEyes}</g>
+  <path d="M78 76 L94 80 L82 85Z M122 76 L106 80 L118 85Z" fill="${color}"/>${sixEyes}
+  <path d="M82 98 L118 98" stroke="${color}" stroke-width="2"/>${teeth}</svg>`;
+}
+function slayerSVG(color){
+  return `<svg viewBox="0 0 160 230" xmlns="http://www.w3.org/2000/svg"><defs><filter id="sg" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter></defs>
+  <g filter="url(#sg)" opacity=".55"><path d="M150 18 L95 90" stroke="${color}" stroke-width="6"/></g>
+  <path d="M60 80 L92 80 L96 150 L80 168 L58 160 L40 178 L28 164 L14 172 L34 120Z" fill="#0a0a12"/>
+  ${[0,1,2].map(k=>`<path d="M${56-k*5} ${96+k*16} L90 ${96+k*16}" stroke="${color}" stroke-width="2" opacity=".5"/>`).join("")}
+  <path d="M60 128 L92 128" stroke="${color}" stroke-width="3"/>
+  <path d="M66 160 L50 222 L60 224 L78 162Z M84 160 L104 220 L114 216 L92 158Z" fill="#0a0a12"/>
+  <circle cx="76" cy="60" r="15" fill="#0a0a12"/>
+  <path d="M68 50 L22 60 L36 66 L14 78 L66 66Z" fill="#0a0a12"/>
+  <path d="M66 56 L28 44 L8 52 M66 60 L30 64 L12 72" stroke="${color}" stroke-width="2.5" fill="none"/>
+  ${Array.from({length:10},(_,i)=>{const a=(i*36)*Math.PI/180;return `<path d="M${76+Math.cos(a)*13} ${57+Math.sin(a)*13} L${76+Math.cos(a+.35)*13} ${57+Math.sin(a+.35)*13} L${76+Math.cos(a+.17)*21} ${53+Math.sin(a+.17)*21}Z" fill="#0a0a12"/>`}).join("")}
+  <path d="M88 86 L104 92" stroke="#0a0a12" stroke-width="9" stroke-linecap="round"/>
+  <path d="M104 92 L152 16" stroke="${color}" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M100 98 L108 86" stroke="#d8b040" stroke-width="5"/></svg>`;
+}
+function slashSVG(color){
+  return `<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><defs><filter id="sl"><feGaussianBlur stdDeviation="3"/></filter></defs>
+  <path d="M10 120 Q100 -20 195 40" stroke="${color}" stroke-width="16" fill="none" filter="url(#sl)" stroke-linecap="round"/>
+  <path d="M10 120 Q100 -20 195 40" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M30 128 Q110 10 192 56" stroke="${color}" stroke-width="5" fill="none" opacity=".7" stroke-linecap="round"/></svg>`;
+}
+function locIcon(l){ return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" width="58" height="58">${skySVG(l.sky[0],l.sky[1],l.moon,{mx:280,my:90,mr:50,wisteria:false})}</svg>` }
+
+/* ================== UI ================== */
+const $=s=>document.querySelector(s);
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id))}
+function setSky(top="#0b0820",bottom="#341a4a",moon="#f5ebd2"){
+  const portrait=innerHeight>innerWidth;
+  $("#sky").innerHTML=portrait?`<svg viewBox="125 0 150 300" preserveAspectRatio="xMidYMin slice">${skySVG(top,bottom,moon,{mx:240,my:62,mr:26,wx:125})}</svg>`
+    :`<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">${skySVG(top,bottom,moon)}</svg>`;
+  for(let i=0;i<14;i++){const d=document.createElement("i");d.className="petal";d.style.left=rnd(0,110)+"%";d.style.animationDuration=rnd(7,14)+"s";d.style.animationDelay=-rnd(0,14)+"s";$("#sky").appendChild(d)}
+}
+function toast(html){const t=document.createElement("div");t.className="toast";t.innerHTML=html;$("#app").appendChild(t);setTimeout(()=>t.remove(),2200)}
+function modal(html){$("#modalCard").innerHTML=html;$("#modal").classList.add("on")}
+function closeModal(){$("#modal").classList.remove("on")}
+const pct=(a,b)=>Math.max(0,Math.min(100,b?a/b*100:0))+"%";
+
+/* ---- создание персонажа ---- */
+let picked=null;
+function renderCreate(){
+  $("#styleList").innerHTML=Object.entries(STYLES).map(([k,s])=>`<button class="style ${picked===k?"sel":""}" style="--c:${s.c}" data-k="${k}"><span class="e">${s.e}</span><b>${s.name}</b><span class="muted">${s.desc.split(".")[0]}</span></button>`).join("");
+  document.querySelectorAll(".style").forEach(b=>b.onclick=()=>{picked=b.dataset.k;haptic();renderCreate()});
+  if(picked){const s=STYLES[picked];
+    $("#styleInfo").innerHTML=`<div class="row"><div style="width:90px;flex:none">${slayerSVG(s.c)}</div><div><p class="h" style="color:${s.c}">${s.e} ${s.name}</p><p class="muted">${s.desc}</p>${s.forms.map(f=>`<div style="font-size:13px">• ${f[0]} <span class="muted">ур.${f[1]}</span></div>`).join("")}</div></div>`;
+    $("#pickBtn").disabled=false;
+  } else $("#styleInfo").innerHTML=`<p class="muted">Нажми на стиль, чтобы узнать больше.</p>`;
+}
+$("#startBtn").onclick=()=>{haptic("medium"); if(P){openHub()} else {show("create");renderCreate()}};
+$("#pickBtn").onclick=()=>{P=newPlayer(picked);save();notify("success");
+  modal(`<div style="width:120px;margin:0 auto">${slayerSVG(STYLES[picked].c)}</div><div class="big">Клинок окрасился</div><p class="muted">Сталь стала цвета <b style="color:${STYLES[picked].c}">${STYLES[picked].name}</b>. Ворон-посланник уже кружит над головой: «Кар! Деревня у подножья! Демон!»</p><button class="btn" onclick="closeModal();openHub()">В путь</button>`)};
+
+/* ---- хаб ---- */
+let tab="map";
+document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;haptic();renderHub()});
+function openHub(){ setSky(); show("hub"); renderHub(); }
+function renderTop(){
+  tick(); const s=STYLES[P.style];
+  $("#tName").innerHTML=`${s.e} <b>${P.name}</b> <span class="muted">ур.${P.level}</span>`;
+  $("#tEn").textContent=`⚡${P.energy}/${MAXE}`; $("#tGold").textContent=`💰${P.gold}`;
+  document.documentElement.style.setProperty("--style",s.c);
+}
+function renderHub(){
+  renderTop();
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
+  const c=$("#hubContent"), st=stats(P);
+  if(tab==="map"){
+    const eta=P.energy<MAXE?Math.max(0,E_EVERY-Math.floor((Date.now()-P.ts)/1000)):0;
+    c.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><b>❤️ ${P.hp}/${st.hp}</b><span class="muted">${eta?`⚡+1 через ${Math.floor(eta/60)}:${String(eta%60).padStart(2,"0")}`:"энергия полна"}</span></div>
+      <div class="bar hpb" style="margin-top:6px"><i style="width:${pct(P.hp,st.hp)}"></i></div>
+      ${P.hp<st.hp?`<button class="btn ghost" style="margin-top:10px;padding:10px" id="restBtn">🏮 Отдых в поместье глицинии (⚡1)</button>`:""}</div>
+      <div class="sec">Задания ворона</div>
+      ${LOCS.map((l,i)=>{const lock=P.level<l.lvl; const bossDone=l.boss&&P.beaten.includes(l.boss);
+        return `<button class="loc ${lock?"lock":""}" data-i="${i}"><div class="ico">${locIcon(l)}</div><div style="flex:1"><b>${l.name}</b><div class="muted">${l.pool.map(id=>DEMONS[id].name).join(", ")}</div><div class="tag">${lock?`🔒 с уровня ${l.lvl}`:"⚡1 — охота"}</div></div></button>
+        ${l.boss&&!lock?`<button class="loc boss-btn" data-boss="${l.boss}"><div class="ico" style="background:#000">${demonSVG(BOSSES[l.boss].c,BOSSES[l.boss].horns,true)}</div><div style="flex:1"><b>🌕 ${BOSSES[l.boss].name}</b><div class="muted">${BOSSES[l.boss].lore}</div><div class="tag">${bossDone?"✅ повержена · ":""}⚡3 · ур. ${BOSSES[l.boss].lvl}+</div></div></button>`:""}`}).join("")}`;
+    c.querySelectorAll(".loc[data-i]").forEach(b=>b.onclick=()=>{const l=LOCS[b.dataset.i]; if(P.level<l.lvl){toast(`Нужен уровень ${l.lvl}`);return} hunt(l)});
+    c.querySelectorAll(".loc[data-boss]").forEach(b=>b.onclick=()=>bossFight(b.dataset.boss));
+    $("#restBtn")&&($("#restBtn").onclick=()=>{if(P.energy<1)return toast("Нет энергии");P.energy--;P.hp=st.hp;save();notify("success");toast("🏮 Хозяйка поместья перевязала раны");renderHub()});
+  }
+  if(tab==="hero"){
+    const s=STYLES[P.style];
+    c.innerHTML=`<div class="card"><div class="row"><div style="width:110px;flex:none">${slayerSVG(s.c)}</div><div style="flex:1">
+      <p class="h">${P.name}</p><div style="color:var(--gold)">${rank(P.level)} · ур. ${P.level}</div><div style="color:${s.c}">${s.e} ${s.name}</div>
+      <div class="muted" style="margin-top:8px">Опыт ${P.xp}/${xpNeed(P.level)}</div><div class="bar xpb"><i style="width:${pct(P.xp,xpNeed(P.level))}"></i></div>
+      <div class="muted" style="margin-top:6px">Энергия ${P.energy}/${MAXE}</div><div class="bar enb"><i style="width:${pct(P.energy,MAXE)}"></i></div></div></div></div>
+      <div class="card"><div class="styles" style="gap:6px;font-size:14px">
+        <div>❤️ Здоровье: <b>${st.hp}</b></div><div>⚔️ Атака: <b>${st.atk}</b></div><div>🛡 Защита: <b>${st.def}</b></div>
+        <div>🌬 Дыхание: <b>${st.br}</b></div><div>💥 Крит: <b>${st.crit}%</b></div><div>💨 Уклон: <b>${st.dodge}%</b></div></div></div>
+      <div class="card"><b>Снаряжение</b><div class="muted">🗡 ${WEAPONS[P.weapon].n}<br>🥋 ${ARMORS[P.armor].n}</div></div>
+      <div class="card"><b>Техники</b>${s.forms.map(f=>`<div style="margin-top:4px">${P.level>=f[1]?"✅":"🔒"} ${f[0]} <span class="muted">— ${f[2]}🌬, ур.${f[1]}</span></div>`).join("")}</div>
+      <div class="card"><b>Летопись</b><div class="muted">Демонов: ${P.kills} · Кровавых Лун: ${P.bossKills} · Поражений: ${P.deaths}</div></div>
+      <div class="card"><b>🎒 Сумка</b>${Object.entries(ITEMS).map(([k,it])=>`<div class="item" style="margin-top:6px"><span>${it.e} ${it.n} ×${P.items[k]||0}</span>${k==="onigiri"&&P.items[k]?`<button class="buy" id="eat">Съесть</button>`:""}</div>`).join("")}</div>
+      <button class="btn ghost" id="reset" style="margin-top:6px">Начать заново</button>`;
+    $("#eat")&&($("#eat").onclick=()=>{P.items.onigiri--;P.energy=Math.min(MAXE,P.energy+4);save();toast("🍙 +4 энергии");renderHub()});
+    $("#reset").onclick=()=>{
+      modal(`<div class="big">Начать заново?</div><p class="muted">Весь прогресс будет потерян.</p><button class="btn" id="yesReset">Да, сбросить</button><button class="btn ghost" style="margin-top:8px" onclick="closeModal()">Отмена</button>`);
+      $("#yesReset").onclick=()=>{P=null;try{localStorage.removeItem(KEY);tg?.CloudStorage?.removeItem(KEY)}catch(e){}closeModal();picked=null;show("create");renderCreate()};
+    };
+  }
+  if(tab==="train"){
+    c.innerHTML=`<div class="card" style="padding:0;overflow:hidden"><svg viewBox="0 0 400 180" preserveAspectRatio="xMidYMid slice" style="width:100%;display:block">${skySVG("#2a3a6a","#f0a070","#ffd28c",{mx:300,my:120,mr:40,wisteria:false})}</svg>
+      <div style="padding:12px"><b>Тренировка на рассвете</b><div class="muted">Каждое упражнение — ⚡2. Наставник суров, но результат навсегда.</div></div></div>
+      ${TRAIN.map(t=>`<button class="loc" data-t="${t[0]}"><div style="font-size:30px">${t[1].split(" ")[0]}</div><div style="flex:1"><b>${t[1].slice(t[1].indexOf(" ")+1)}</b><div class="tag">${t[3]} · ⚡2</div></div></button>`).join("")}`;
+    c.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{
+      const t=TRAIN.find(x=>x[0]===b.dataset.t); if(P.energy<2)return toast("Слишком устал. Нужно ⚡2");
+      if((t[0]==="crit"||t[0]==="dodge")&&P.base[t[0]]>=30)return toast("Навык отточен до предела");
+      P.energy-=2;P.base[t[0]]+=t[2]; const xp=8+P.level*3; const ups=addXp(xp); save(); haptic("medium");
+      toast(`✅ ${t[3]}, ✨+${xp} опыта`+(ups.length?"<br>"+ups.join("<br>"):"")); renderHub();
+    });
+  }
+  if(tab==="shop"){
+    const buyRow=(kind,k,label,sub,price)=>`<div class="card item"><div><b>${label}</b><div class="muted">${sub}</div></div><button class="buy" data-kind="${kind}" data-k="${k}">${price}💰</button></div>`;
+    c.innerHTML=`<div class="sec">Снадобья</div>${Object.entries(ITEMS).map(([k,it])=>buyRow("i",k,`${it.e} ${it.n}`,`${it.d} · есть ${P.items[k]||0}`,it.p)).join("")}
+      <div class="sec">Клинки</div>${Object.entries(WEAPONS).filter(([k,w])=>w.p&&w.atk>WEAPONS[P.weapon].atk).map(([k,w])=>buyRow("w",k,`🗡 ${w.n}`,`+${w.atk} к атаке`,w.p)).join("")||`<p class="muted">У тебя лучший клинок.</p>`}
+      <div class="sec">Хаори</div>${Object.entries(ARMORS).filter(([k,a])=>a.p&&a.def>ARMORS[P.armor].def).map(([k,a])=>buyRow("a",k,`🥋 ${a.n}`,`+${a.def} защиты, +${a.dodge}% уклона`,a.p)).join("")||`<p class="muted">У тебя лучшее хаори.</p>`}`;
+    c.querySelectorAll(".buy").forEach(b=>b.onclick=()=>{
+      const {kind,k}=b.dataset, tbl={i:ITEMS,w:WEAPONS,a:ARMORS}[kind], it=tbl[k];
+      if(P.gold<it.p){notify("error");return toast(`Не хватает рё (${P.gold}/${it.p})`)}
+      P.gold-=it.p; if(kind==="i")P.items[k]=(P.items[k]||0)+1; else if(kind==="w")P.weapon=k; else P.armor=k;
+      save(); notify("success"); toast(`Куплено: ${it.n}`); renderHub();
+    });
+  }
+}
+
+/* ================== БОЙ ================== */
+let F=null, busy=false;
+function hunt(loc){
+  tick(); const st=stats(P);
+  if(P.energy<1)return toast("Нет энергии ⚡ Подожди или съешь онигири");
+  if(P.hp<st.hp*.15)return toast("Ты едва стоишь. Отдохни 🏮");
+  P.energy--; save();
+  const pool=loc.pool.map(id=>DEMONS[id]); startFight(scaled(pool[ri(0,pool.length-1)],false),loc);
+}
+function bossFight(id){
+  tick(); const b=BOSSES[id], loc=LOCS.find(l=>l.boss===id);
+  if(P.level<b.lvl)return toast(`Слишком опасно. Нужен уровень ${b.lvl}`);
+  const wait=Math.ceil((BOSS_CD*1000-(Date.now()-P.bossTs))/60000); if(wait>0)return toast(`Луна ещё не взошла. Жди ${wait} мин.`);
+  if(P.energy<3)return toast("Нужно ⚡3");
+  P.energy-=3;P.bossTs=Date.now();save(); startFight(scaled(b,true),loc);
+}
+function startFight(e,loc){
+  F={e,turn:1,poison:0,burn:0,stun:0,shield:0,evade:0,br:stats(P).br,log:[e.boss?`🌕 <i>Луна налилась кровью...</i>`:`🐦 <i>Кар! Демон рядом!</i>`,`<i>${e.lore}</i>`]};
+  $("#arenaBg").innerHTML=e.boss?skySVG("#1a0006","#6a0a24","#e0203c",{mr:44}):skySVG(loc.sky[0],loc.sky[1],loc.moon);
+  $("#demon").innerHTML=demonSVG(e.c,e.horns,e.boss); $("#demon").style.width=e.boss?"66%":"56%";
+  $("#slayer").innerHTML=slayerSVG(STYLES[P.style].c);
+  show("battle"); haptic("heavy"); renderBattle();
+}
+function renderBattle(){
+  const st=stats(P), e=F.e, s=STYLES[P.style];
+  $("#eName").textContent=(e.boss?"🌕 ":"👹 ")+e.name;
+  $("#eSt").textContent=[F.poison?"🌸":"",F.burn?"🔥":"",F.stun?"💫":""].join(" ");
+  $("#eHp").style.width=pct(e.hp,e.maxHp); $("#eHpT").textContent=`${e.hp}/${e.maxHp}`;
+  $("#pHp").style.width=pct(P.hp,st.hp); $("#pBr").style.width=pct(F.br,st.br);
+  $("#pHpT").textContent=`${P.hp}/${st.hp}`; $("#pBrT").textContent=`${F.br}/${st.br}`;
+  $("#log").innerHTML=F.log.slice(-3).join("<br>");
+  if(F.itemsView){
+    $("#acts").innerHTML=Object.entries(ITEMS).filter(([k])=>k!=="onigiri").map(([k,it])=>`<button class="act" data-a="item" data-x="${k}" ${P.items[k]?"":"disabled"}>${it.e} ${it.n} ×${P.items[k]||0}</button>`).join("")+`<button class="act" data-a="back">⬅️ Назад</button>`;
+  } else {
+    $("#acts").innerHTML=`<button class="act" data-a="attack">⚔️ Удар</button><button class="act" data-a="focus">🧘 Концентрация</button>`+
+      s.forms.map((f,i)=>P.level>=f[1]?`<button class="act form" data-a="form" data-x="${i}" ${F.br<f[2]?"disabled":""}><span>${s.e} ${f[0]}</span><span>${f[2]}🌬</span></button>`:"").join("")+
+      `<button class="act" data-a="items">🎒 Предметы</button><button class="act" data-a="flee">🏃 Отступить</button>`;
+  }
+  $("#acts").querySelectorAll("button").forEach(b=>b.onclick=()=>onAct(b.dataset.a,b.dataset.x));
+}
+function popDmg(text,color,atDemon=true){
+  const d=document.createElement("div");d.className="dmg";d.textContent=text;d.style.color=color;
+  d.style.left=(atDemon?rnd(55,75):rnd(10,25))+"%"; d.style.top=(atDemon?rnd(25,45):rnd(45,60))+"%";
+  $("#fx").appendChild(d); setTimeout(()=>d.remove(),1000);
+}
+function slashFx(color){const d=document.createElement("div");d.className="slash";d.innerHTML=slashSVG(color);$("#fx").appendChild(d);setTimeout(()=>d.remove(),520)}
+function anim(el,cls){el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls)}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+function hitCalc(atk,mult,def,crit,force){const c=force||Math.random()*100<crit;return [Math.max(1,Math.floor(atk*mult*rnd(.85,1.15)*(c?1.8:1)-def*.6)),c]}
+
+function timingGame(){
+  return new Promise(res=>{
+    const tm=$("#timing"), mk=$("#mark"); tm.classList.add("on"); let t0=performance.now(), done=false;
+    const dur=900;
+    const loop=now=>{ if(done)return; const k=((now-t0)%(dur*2))/dur; const x=k<1?k:2-k; mk.style.left=(x*100)+"%"; mk.dataset.x=x; if(now-t0>dur*3.2){finish(-1)} else requestAnimationFrame(loop)};
+    const finish=x=>{ if(done)return; done=true; tm.classList.remove("on"); tm.onpointerdown=null;
+      if(x<0)return res(["😮‍💨 Дыхание сбилось",.7]);
+      const d=Math.abs(x-.5); res(d<.04?["✨ <b>Идеальное дыхание!</b>",1.5]:d<.1?["👍 Хорошее дыхание",1.15]:["😮‍💨 Дыхание сбилось",.7]); };
+    tm.onpointerdown=()=>{haptic("rigid");finish(parseFloat(mk.dataset.x||0))};
+    requestAnimationFrame(loop);
+  });
+}
+
+async function onAct(a,x){
+  if(busy)return;
+  if(a==="items"){F.itemsView=true;return renderBattle()}
+  if(a==="back"){F.itemsView=false;return renderBattle()}
+  busy=true; F.itemsView=false;
+  const st=stats(P), e=F.e, s=STYLES[P.style], log=[];
+  const sl=$("#slayer"), dm=$("#demon"), ar=$("#arena");
+
+  if(a==="attack"){
+    anim(sl,"lunge"); await wait(180);
+    const [d,c]=hitCalc(st.atk,1,e.def,st.crit); e.hp-=d; F.br=Math.min(st.br,F.br+3);
+    slashFx("#ffffff"); anim(dm,"hit"); popDmg((c?"💥":"")+d,c?"#ffcc55":"#fff"); haptic(c?"heavy":"light");
+    log.push(`⚔️ Удар: <b>${d}</b>${c?" КРИТ":""}`);
+  }
+  else if(a==="form"){
+    const f=s.forms[+x]; if(F.br<f[2]){busy=false;return}
+    F.br-=f[2];
+    const [tl,tk]=await timingGame(); log.push(tl);
+    anim(sl,"lunge"); await wait(180);
+    if(f[4]==="multi"){
+      const n=ri(3,5); let tot=0;
+      for(let i=0;i<n;i++){const [d]=hitCalc(st.atk,f[3]*tk,e.def,st.crit);tot+=d;slashFx(s.c);anim(dm,"hit");popDmg(d,s.c);haptic("medium");await wait(140)}
+      e.hp-=tot; log.push(`${s.e} <b>${f[0]}</b> — ${n} ударов, <b>${tot}</b>`);
+    } else {
+      const [d,c]=hitCalc(st.atk,f[3]*tk,e.def,st.crit,f[4]==="crit"&&Math.random()<.5); e.hp-=d;
+      slashFx(s.c); anim(dm,"hit"); anim(ar,"shake"); popDmg((c?"💥":"")+d,s.c); haptic("heavy");
+      log.push(`${s.e} <b>${f[0]}</b>: <b>${d}</b>${c?" КРИТ":""}`);
+      if(f[4]==="heal"){const h=Math.floor(st.hp*.18);P.hp=Math.min(st.hp,P.hp+h);popDmg("+"+h,"#6cf0a0",false);log.push(`💧 +${h} HP`)}
+      if(f[4]==="burn"){F.burn=3;log.push("🔥 Демон горит!")}
+      if(f[4]==="stun"&&Math.random()<.6){F.stun=1;log.push("💫 Демон оглушён!")}
+      if(f[4]==="shield"){F.shield=2;log.push("🛡 Гранитный щит")}
+      if(f[4]==="evade"){F.evade=2;log.push("🌫 Ты растворяешься в тумане")}
+    }
+  }
+  else if(a==="focus"){F.br=Math.min(st.br,F.br+8);F.shield=Math.max(F.shield,1);popDmg("+8🌬","#8fd3ff",false);log.push("🧘 Концентрация: +8 дыхания, защита")}
+  else if(a==="item"){
+    if(!P.items[x]){busy=false;return}
+    P.items[x]--;
+    if(x==="potion"){const h=Math.floor(st.hp*.45);P.hp=Math.min(st.hp,P.hp+h);popDmg("+"+h,"#6cf0a0",false);log.push(`🧪 +${h} HP`)}
+    if(x==="wisteria"){F.poison=4;log.push("🌸 Яд глицинии! Регенерация подавлена")}
+    if(x==="pill"){F.br=st.br;log.push("💊 Дыхание восстановлено")}
+  }
+  else if(a==="flee"){
+    if(Math.random()<(e.boss?.25:.6)){busy=false;save();toast("🏃 Ты отступил во тьму");openHub();return}
+    log.push("🏃 Сбежать не удалось!");
+  }
+
+  if(F.burn>0&&e.hp>0){const d=Math.max(1,Math.floor(e.maxHp*.05));e.hp-=d;F.burn--;log.push(`🔥 Горение ${d}`)}
+  if(F.poison>0&&e.hp>0){const d=Math.max(1,Math.floor(e.maxHp*.06));e.hp-=d;F.poison--;log.push(`🌸 Яд ${d}`)}
+  if(e.hp<=0){e.hp=0;F.log=log;renderBattle();await wait(400);busy=false;return win()}
+  F.log=log; renderBattle(); await wait(450);
+
+  // ход демона
+  if(F.stun>0){F.stun--;log.push("💫 Демон не может двигаться")}
+  else{
+    const special=e.boss&&F.turn%3===0, mult=special?1.8:1;
+    anim(dm,"lunge"); dm.style.animationDirection="reverse";
+    await wait(200); dm.style.animationDirection="";
+    if(Math.random()*100<st.dodge+(F.evade>0?35:0)){popDmg("Уклон!","#c8d2f0",false);log.push("💨 Ты увернулся!")}
+    else{
+      let d=Math.max(1,Math.floor(e.atk*mult*rnd(.85,1.15)-st.def*.7)); if(F.shield>0)d=Math.floor(d*.4);
+      P.hp-=d; anim(sl,"hit"); anim(ar,"shake"); popDmg("-"+d,"#ff4d6d",false); haptic(special?"heavy":"medium");
+      log.push(special?`🩸 <b>Техника демонической крови!</b> −${d}`:`👹 Удар демона: −${d}`);
+    }
+  }
+  F.shield=Math.max(0,F.shield-1); F.evade=Math.max(0,F.evade-1);
+  if(F.poison<=0&&e.hp<e.maxHp){const r=Math.floor(e.maxHp*e.regen/100);e.hp=Math.min(e.maxHp,e.hp+r);log.push(`🩸 Регенерация +${r}`)}
+  F.turn++; F.log=log;
+  if(P.hp<=0){P.hp=0;renderBattle();await wait(400);busy=false;return lose()}
+  save(); renderBattle(); busy=false;
+}
+function win(){
+  const e=F.e; notify("success");
+  P.gold+=e.gold; P.kills++; const lines=[`✨ +${e.xp} опыта · 💰 +${e.gold} рё`];
+  if(e.boss){P.bossKills++; if(!P.beaten.includes(e.id)){P.beaten.push(e.id);lines.push("🌕 <b>Кровавая Луна повержена!</b>")}}
+  if(Math.random()<.35){const k=["potion","potion","pill","wisteria"][ri(0,3)];P.items[k]=(P.items[k]||0)+1;lines.push(`🎁 Найдено: ${ITEMS[k].e} ${ITEMS[k].n}`)}
+  lines.push(...addXp(e.xp)); P.hpTs=Date.now(); save();
+  modal(`<div style="width:120px;margin:0 auto">${slayerSVG(STYLES[P.style].c)}</div><div class="big">${e.boss?"Луна пала!":"Демон повержен"}</div>
+    <p class="muted">${e.name} обращается в пепел с первыми лучами рассвета.</p><p>${lines.join("<br>")}</p>
+    <button class="btn" onclick="closeModal();openHub()">Вернуться в штаб</button>`);
+}
+function lose(){
+  notify("error"); P.deaths++; const lost=Math.floor(P.gold/5); P.gold-=lost; P.hp=Math.max(1,Math.floor(stats(P).hp/4)); P.hpTs=Date.now(); save();
+  modal(`<div class="big" style="color:var(--accent)">Поражение</div><p class="muted">Отряд скрытых вынес тебя с поля боя. Потеряно ${lost} рё.</p><p>Тренируйся, купи яд глицинии — и возвращайся.</p><button class="btn" onclick="closeModal();openHub()">В штаб</button>`);
+}
+
+/* ================== СТАРТ ================== */
+(async()=>{
+  setSky();
+  const local=loadLocal(), cloud=await loadCloud();
+  P = (cloud && (!local || (cloud.level*1e6+cloud.xp) >= (local.level*1e6+local.xp))) ? cloud : local;
+  if(P){ $("#startBtn").textContent=`Продолжить (${STYLES[P.style].e} ур. ${P.level})`; }
+  setInterval(()=>{ if(P && $("#hub").classList.contains("on")) renderTop() },15000);
+})();
+</script>
+</body>
+</html>
